@@ -3,13 +3,85 @@
  */
 
 export class LFRSimulator {
-    constructor(nMirrors = 22, width = 0.195, height = 2.5) {
+    constructor(nMirrors = 22, width = 0.195, height = 2.5, lat = 10.9, lon = 76.9) {
         this.n = nMirrors;
         this.width = width;
         this.h = height;
+        this.lat = lat;
+        this.lon = lon;
         this.dArray = [-2.155, -1.9428, -1.7326, -1.5242, -1.3173, -1.1118, -0.9075, 
                        -0.7043, -0.5021, -0.3007, -0.1, 0.1, 0.3007, 0.5021, 
                        0.7043, 0.9075, 1.1118, 1.373, 1.5242, 1.7326, 1.9428, 2.155];
+    }
+
+    calculateSolarPosition(date) {
+        // Replicates solarnoon.m and elevationangle.m logic
+        const lat = this.lat;
+        const lon = this.lon;
+        const tz = 5.5; // Default for India/IST as per screenshot context
+        
+        // Convert JS date to Excel-style date (days since Dec 30, 1899)
+        const dateOffset = 25569;
+        const dayMS = 24 * 60 * 60 * 1000;
+        const excelDate = (date.getTime() / dayMS) + dateOffset;
+        
+        const t = date.getHours() + date.getMinutes() / 60;
+        const timeVal = t / 24;
+        const jd = excelDate + 2415018.5 + timeVal - (tz / 24);
+        const jc = (jd - 2451545) / 36525;
+        
+        const gmls = (280.46646 + (jc * (36000.76983 + (jc * 0.0003032)))) % 360;
+        const gmas = 357.52911 + (jc * (35999.05029 - (0.0001537 * jc)));
+        const eeo = 0.016708634 - (jc * (0.000042037 + (0.0001537 * jc)));
+        
+        const eqctr = Math.sin(this.rad(gmas)) * (1.914602 - jc * (0.004817 + 0.000014 * jc)) + 
+                      Math.sin(this.rad(2 * gmas)) * (0.019993 - 0.000101 * jc) + 
+                      Math.sin(this.rad(3 * gmas)) * 0.000289;
+                
+        const stl = eqctr + gmls;
+        const sal = stl - 0.00569 - 0.00478 * Math.sin(this.rad(125.04 - 1934.136 * jc));
+        const moe = 23 + (26 + ((21.448 - jc * (46.815 + jc * (0.00059 - jc * 0.001813)))) / 60) / 60;
+        const oc = moe + 0.00256 * Math.cos(this.rad(125.04 - 1934.136 * jc));
+        
+        const sd = this.deg(Math.asin(Math.sin(this.rad(oc)) * Math.sin(this.rad(sal))));
+        const vary = Math.tan(this.rad(oc / 2)) ** 2;
+        
+        const eqoft = 4 * 180 / Math.PI * (vary * Math.sin(2 * this.rad(gmls)) - 2 * eeo * Math.sin(this.rad(gmas)) + 
+                4 * eeo * vary * Math.sin(this.rad(gmas)) * Math.cos(2 * this.rad(gmls)) - 
+                0.5 * vary * vary * Math.sin(4 * this.rad(gmls)) - 1.25 * eeo * eeo * Math.sin(2 * this.rad(gmas)));
+        
+        const trueSolarTime = (timeVal * 1440 + eqoft + 4 * lon - 60 * tz) % 1440;
+        let hourAngle = trueSolarTime / 4 - 180;
+        if (hourAngle < -180) hourAngle += 360;
+        
+        const cza = Math.sin(this.rad(lat)) * Math.sin(this.rad(sd)) + 
+                    Math.cos(this.rad(lat)) * Math.cos(this.rad(sd)) * Math.cos(this.rad(hourAngle));
+        
+        const zenith = this.deg(Math.acos(Math.min(1, Math.max(-1, cza))));
+        const altitude = 90 - zenith;
+        
+        const azNum = (Math.sin(this.rad(lat)) * Math.cos(this.rad(zenith)) - Math.sin(this.rad(sd))) / 
+                      (Math.cos(this.rad(lat)) * Math.sin(this.rad(zenith)));
+        let azimuth = this.deg(Math.acos(Math.min(1, Math.max(-1, azNum)))) + 180;
+        if (hourAngle > 0) azimuth = (540 - azimuth) % 360;
+        else azimuth = azimuth % 360;
+        
+        return { altitude, azimuth, zenith };
+    }
+
+    rad(deg) { return deg * Math.PI / 180; }
+    deg(rad) { return rad * 180 / Math.PI; }
+
+    getMirrorTilt(mn, altitudeDeg) {
+        const d = Math.abs(this.dArray[mn-1]);
+        const a = altitudeDeg; // Altitude is 90 - zenith
+        let m;
+        if (mn <= this.n / 2) {
+            m = (a + 90 - (Math.atan(this.h / d) * 180) / Math.PI) / 2;
+        } else {
+            m = (a - 90 + (Math.atan(this.h / d) * 180) / Math.PI) / 2;
+        }
+        return m;
     }
 
     getCosineEfficiency(angleDeg) {
