@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LFR Solar Simulator Pro</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body class="dark-theme">
+    <div id="app">
+        <aside class="sidebar">
+            <header>
+                <h1>LFR <span class="accent">Simulator</span></h1>
+                <p>Advanced Performance Analytics</p>
+            </header>
+            
+            <div class="controls">
+                <div class="control-group">
+                    <label>Number of Mirrors</label>
+                    <input type="range" id="nMirrors" min="8" max="30" value="22">
+                    <span class="val" id="nMirrorsVal">22</span>
+                </div>
+                
+                <div class="control-group">
+                    <label>Mirror Width (m)</label>
+                    <input type="range" id="mWidth" min="0.1" max="2.0" step="0.05" value="0.195">
+                    <span class="val" id="mWidthVal">0.195</span>
+                </div>
+                
+                <div class="control-group">
+                    <label>Receiver Height (m)</label>
+                    <input type="range" id="rHeight" min="1.0" max="15.0" step="0.1" value="2.5">
+                    <span class="val" id="rHeightVal">2.5</span>
+                </div>
+                
+                <div class="control-group">
+                    <label>Simulated Angle (°)</label>
+                    <input type="range" id="sAngle" min="0" max="90" step="1" value="45">
+                    <span class="val" id="sAngleVal">45°</span>
+                </div>
+            </div>
+
+            <footer>
+                <button id="downloadCsv" class="btn-primary">Download Production Report</button>
+            </footer>
+        </aside>
+
+        <main class="content">
+            <div class="dashboard-grid">
+                <div class="card chart-card">
+                    <h2>Efficiency Profile</h2>
+                    <div id="efficiencyChart"></div>
+                </div>
+                
+                <div class="card viz-card">
+                    <h2>Ray Tracing Visualization</h2>
+                    <div id="rayViz"></div>
+                </div>
+
+                <div class="card table-card">
+                    <h2>Performance Logs</h2>
+                    <div class="table-wrapper">
+                        <table id="logsTable">
+                            <thead>
+                                <tr>
+                                    <th>Angle</th>
+                                    <th>Cosine Eff</th>
+                                    <th>Shading Eff</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    <!-- Preview Modal -->
+    <div id="previewModal" class="modal">
+        <div class="modal-content">
+            <header>
+                <h2>Report Preview</h2>
+                <button id="closeModal" class="close-btn">&times;</button>
+            </header>
+            <div class="modal-body">
+                <pre id="csvPreview"></pre>
+            </div>
+            <footer>
+                <button id="confirmDownload" class="btn-primary">Confirm & Download CSV</button>
+            </footer>
+        </div>
+    </div>
+
+    <script type="module" src="./main.js"></script>
+</body>
+</html>
